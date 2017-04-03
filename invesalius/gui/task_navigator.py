@@ -489,6 +489,7 @@ class NeuronavigationPanel(wx.Panel):
                 Publisher.sendMessage("Navigation Status", True)
                 Publisher.sendMessage("Toggle Cross", const.SLICE_STATE_CROSS)
                 Publisher.sendMessage("Hide current mask")
+                print "Testing navigation..."
 
                 self.correg = dcr.Coregistration((minv, n, q1, q2), nav_id, tracker_mode)
 
