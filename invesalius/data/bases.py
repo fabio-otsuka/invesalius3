@@ -1,5 +1,6 @@
 from math import sqrt
 import numpy as np
+from scipy import linalg
 
 
 def angle_calculation(ap_axis, coil_axis):
@@ -21,13 +22,7 @@ def angle_calculation(ap_axis, coil_axis):
 
 def base_creation(fiducials):
     """
-    Calculate the origin and matrix for coordinate system
-    transformation.
-    q: origin of coordinate system
-    g1, g2, g3: orthogonal vectors of coordinate system
 
-    :param fiducials: array of 3 rows (p1, p2, p3) and 3 columns (x, y, z) with fiducials coordinates
-    :return: matrix and origin for base transformation
     """
 
     p1 = fiducials[0, :]
@@ -64,8 +59,8 @@ def base_creation(fiducials):
 
     return m, q, m_inv
 
+def calculate_fre(fiducials,R,t):
 
-def calculate_fre(fiducials, minv, n, q1, q2):
     """
     Calculate the Fiducial Registration Error for neuronavigation.
 
@@ -77,22 +72,18 @@ def calculate_fre(fiducials, minv, n, q1, q2):
     :return: float number of fiducial registration error
     """
 
-    img = np.zeros([3, 3])
-    dist = np.zeros([3, 1])
+    print fiducials
 
-    p1 = np.mat(fiducials[3, :]).reshape(3, 1)
-    p2 = np.mat(fiducials[4, :]).reshape(3, 1)
-    p3 = np.mat(fiducials[5, :]).reshape(3, 1)
+    img = np.array([fiducials[0, :],fiducials[1, :],fiducials[2, :]])
+    trk = np.array([fiducials[3, :],fiducials[4, :],fiducials[5, :]])
+    result = []
 
-    img[0, :] = np.asarray((q1 + (minv * n) * (p1 - q2)).reshape(1, 3))
-    img[1, :] = np.asarray((q1 + (minv * n) * (p2 - q2)).reshape(1, 3))
-    img[2, :] = np.asarray((q1 + (minv * n) * (p3 - q2)).reshape(1, 3))
+    for i in range(0, len(trk)):
+        result.append((np.dot(R,trk[i]) + t))
 
-    dist[0] = np.sqrt(np.sum(np.power((img[0, :] - fiducials[0, :]), 2)))
-    dist[1] = np.sqrt(np.sum(np.power((img[1, :] - fiducials[1, :]), 2)))
-    dist[2] = np.sqrt(np.sum(np.power((img[2, :] - fiducials[2, :]), 2)))
+    result = np.array(result)
 
-    return float(np.sqrt(np.sum(dist ** 2) / 3))
+    return float(np.sqrt(np.square(np.linalg.norm(result - img))/len(img)))
 
 
 def flip_x(point):
@@ -133,3 +124,24 @@ def flip_x(point):
     x, y, z = point_rot.tolist()[0][:3]
 
     return x, y, z
+
+def base_creation_matrix(trk,img):
+
+    from scipy import linalg
+    num_points = len(img)
+
+    trk_mat = np.array(img).T
+    img_mat = np.array(trk).T
+
+    trk_mean = trk_mat.mean(1)
+    img_mean = img_mat.mean(1)
+    trk_M = trk_mat - np.tile(trk_mean, (num_points, 1)).T
+    right_M = img_mat - np.tile(img_mean, (num_points, 1)).T
+
+    M = trk_M.dot(right_M.T)
+    U, S, Vt = linalg.svd(M)
+    V = Vt.T
+    R = V.dot(np.diag((1, 1, linalg.det(U.dot(V))))).dot(U.T)
+    t = img_mean - R.dot(trk_mean)
+
+    return R,t
