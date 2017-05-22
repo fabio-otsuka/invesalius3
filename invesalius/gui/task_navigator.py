@@ -36,6 +36,7 @@ import invesalius.gui.dialogs as dlg
 import invesalius.gui.widgets.foldpanelbar as fpb
 import invesalius.gui.widgets.colourselect as csel
 
+
 class TaskPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -115,7 +116,7 @@ class InnerFoldPanel(wx.Panel):
         # Study this.
 
         fold_panel = fpb.FoldPanelBar(self, -1, wx.DefaultPosition,
-                                      (10, 293), 0, fpb.FPB_SINGLE_FOLD)
+                                      (10, 350), 0, fpb.FPB_SINGLE_FOLD)
 
         # Fold panel style
         style = fpb.CaptionBarStyle()
@@ -316,9 +317,9 @@ class NeuronavigationPanel(wx.Panel):
     def LoadImageFiducials(self, pubsub_evt):
         marker_id = pubsub_evt.data[0]
         coord = pubsub_evt.data[1]
-        for n in const.BTNS_IMG_MKS:
-            btn_id = const.BTNS_IMG_MKS[n].keys()[0]
-            fid_id = const.BTNS_IMG_MKS[n].values()[0]
+        for n in const.BTNS_IMG:
+            btn_id = const.BTNS_IMG[n].keys()[0]
+            fid_id = const.BTNS_IMG[n].values()[0]
             if marker_id == fid_id and not self.btns_coord[btn_id].GetValue():
                 self.btns_coord[btn_id].SetValue(True)
                 self.fiducials[btn_id, :] = coord[0:3]
@@ -342,7 +343,6 @@ class NeuronavigationPanel(wx.Panel):
         self.trigger_state = pubsub_evt.data
 
     def OnChoiceTracker(self, evt, ctrl):
-        Publisher.sendMessage('Update status text in GUI', _("Configuring tracker ..."))
         if evt:
             choice = evt.GetSelection()
         else:
@@ -390,7 +390,6 @@ class NeuronavigationPanel(wx.Panel):
                     dlg.NavigationTrackerWarning(self.tracker_id, self.trk_init[1])
                     self.tracker_id = 0
                     ctrl.SetSelection(self.tracker_id)
-        Publisher.sendMessage('Update status text in GUI', _("Ready"))
 
     def OnChoiceRefMode(self, evt, ctrl):
         # When ref mode is changed the tracker coords are set to zero
@@ -415,8 +414,8 @@ class NeuronavigationPanel(wx.Panel):
         Publisher.sendMessage('Update cross position', (wx, wy, wz))
 
     def OnImageFiducials(self, evt):
-        btn_id = const.BTNS_IMG_MKS[evt.GetId()].keys()[0]
-        marker_id = const.BTNS_IMG_MKS[evt.GetId()].values()[0]
+        btn_id = const.BTNS_IMG[evt.GetId()].keys()[0]
+        marker_id = const.BTNS_IMG[evt.GetId()].values()[0]
 
         if self.btns_coord[btn_id].GetValue():
             coord = self.numctrls_coord[btn_id][0].GetValue(),\
@@ -469,13 +468,12 @@ class NeuronavigationPanel(wx.Panel):
                 for btn_c in self.btns_coord:
                     btn_c.Enable(False)
 
-                m, q1, minv = db.base_creation(self.fiducials[0:3, :])
-                n, q2, ninv = db.base_creation(self.fiducials[3::, :])
+                R, t = db.base_creation_matrix(self.fiducials[0:3, :],self.fiducials[3::, :])
 
                 tracker_mode = self.trk_init, self.tracker_id, self.ref_mode_id
                 # FIXME: FRE is taking long to calculate so it updates on GUI delayed to navigation - I think its fixed
                 # TODO: Exhibit FRE in a warning dialog and only starts navigation after user clicks ok
-                fre = db.calculate_fre(self.fiducials, minv, n, q1, q2)
+                fre = db.calculate_fre(self.fiducials, R,t)
 
                 txtctrl_fre.SetValue(str(round(fre, 2)))
                 if fre <= 3:
@@ -486,12 +484,7 @@ class NeuronavigationPanel(wx.Panel):
                 if self.trigger_state:
                     self.trigger = trig.Trigger(nav_id)
 
-                Publisher.sendMessage("Navigation Status", True)
-                Publisher.sendMessage("Toggle Cross", const.SLICE_STATE_CROSS)
-                Publisher.sendMessage("Hide current mask")
-                print "Testing navigation..."
-
-                self.correg = dcr.Coregistration((minv, n, q1, q2), nav_id, tracker_mode)
+                self.correg = dcr.Coregistration((R,t), nav_id, tracker_mode)
 
         else:
             tooltip = wx.ToolTip(_("Start neuronavigation"))
@@ -507,8 +500,6 @@ class NeuronavigationPanel(wx.Panel):
                 self.trigger.stop()
 
             self.correg.stop()
-
-            Publisher.sendMessage("Navigation Status", False)
 
     def ResetTrackerFiducials(self):
         for m in range(3, 6):
@@ -641,9 +632,10 @@ class MarkersPanel(wx.Panel):
                 for id_n in range(self.lc.GetItemCount()):
                     item = self.lc.GetItem(id_n, 4)
                     if item.GetText() == marker_id:
-                        for i in const.BTNS_IMG_MKS:
-                            if marker_id in const.BTNS_IMG_MKS[i].values()[0]:
+                        for i in const.BTNS_IMG:
+                            if marker_id in const.BTNS_IMG[i].values()[0]:
                                 self.lc.Focus(item.GetId())
+                                break
                 self.DeleteMarker()
         else:
             if self.lc.GetFocusedItem() is not -1:
@@ -686,8 +678,8 @@ class MarkersPanel(wx.Panel):
                     size = float(line[6])
 
                     if len(line) == 8:
-                        for i in const.BTNS_IMG_MKS:
-                            if line[7] in const.BTNS_IMG_MKS[i].values()[0]:
+                        for i in const.BTNS_IMG:
+                            if line[7] in const.BTNS_IMG[i].values()[0]:
                                 Publisher.sendMessage('Load image fiducials', (line[7], coord))
                     else:
                         line.append("")
@@ -705,7 +697,7 @@ class MarkersPanel(wx.Panel):
             ctrl.SetLabel('Hide')
 
     def OnSaveMarkers(self, evt):
-        filename = dlg.ShowSaveMarkersDialog("markers.mks")
+        filename = dlg.ShowSaveMarkersDialog("markers.txt")
         if filename:
             if self.list_coord:
                 text_file = open(filename, "w")
