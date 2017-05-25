@@ -120,7 +120,7 @@ class InnerFoldPanel(wx.Panel):
                                           (10, 350), 0, fpb.FPB_SINGLE_FOLD)
         else:
             fold_panel = fpb.FoldPanelBar(self, -1, wx.DefaultPosition,
-                                          (10, 293), 0, fpb.FPB_SINGLE_FOLD)
+                                          (10, 350), 0, fpb.FPB_SINGLE_FOLD)
         # Fold panel style
         style = fpb.CaptionBarStyle()
         style.SetCaptionStyle(fpb.CAPTIONBAR_GRADIENT_V)
@@ -209,7 +209,7 @@ class NeuronavigationPanel(wx.Panel):
         self.__bind_events()
 
         # Initialize global variables
-        self.fiducials = np.full([6, 3], np.nan)
+        self.fiducials = np.full([8, 3], np.nan)
         self.correg = None
         self.current_coord = 0, 0, 0
         self.trk_init = None
@@ -220,8 +220,8 @@ class NeuronavigationPanel(wx.Panel):
         self.ref_mode_id = const.DEFAULT_REF_MODE
 
         # Initialize list of buttons and numctrls for wx objects
-        self.btns_coord = [None] * 7
-        self.numctrls_coord = [list(), list(), list(), list(), list(), list(), list()]
+        self.btns_coord = [None] * 9
+        self.numctrls_coord = [list(), list(), list(), list(), list(), list(), list(),list(),list()]
 
         # ComboBox for spatial tracker device selection
         tooltip = wx.ToolTip(_("Choose the tracking device"))
@@ -258,9 +258,9 @@ class NeuronavigationPanel(wx.Panel):
             n = btns_trk[k].keys()[0]
             lab = btns_trk[k].values()[0]
             self.btns_coord[n] = wx.Button(self, k, label=lab, size=wx.Size(45, 23))
-            self.btns_coord[n].SetToolTip(tips_trk[n-3])
+            self.btns_coord[n].SetToolTip(tips_trk[n-4])
             # Excepetion for event of button that set image coordinates
-            if n == 6:
+            if n == 8:
                 self.btns_coord[n].Bind(wx.EVT_BUTTON, self.OnSetImageCoordinates)
             else:
                 self.btns_coord[n].Bind(wx.EVT_BUTTON, self.OnTrackerFiducials)
@@ -283,7 +283,7 @@ class NeuronavigationPanel(wx.Panel):
         btn_nav.Bind(wx.EVT_TOGGLEBUTTON, partial(self.OnNavigate, btn=(btn_nav, choice_trck, choice_ref, txtctrl_fre)))
 
         # Image and tracker coordinates number controls
-        for m in range(0, 7):
+        for m in range(0, 9):
             for n in range(0, 3):
                 self.numctrls_coord[m].append(
                     wx.lib.masked.numctrl.NumCtrl(parent=self, integerWidth=4, fractionWidth=1))
@@ -295,11 +295,11 @@ class NeuronavigationPanel(wx.Panel):
 
         coord_sizer = wx.GridBagSizer(hgap=5, vgap=5)
 
-        for m in range(0, 7):
+        for m in range(0, 9):
             coord_sizer.Add(self.btns_coord[m], pos=wx.GBPosition(m, 0))
             for n in range(0, 3):
                 coord_sizer.Add(self.numctrls_coord[m][n], pos=wx.GBPosition(m, n+1))
-                if m in range(1, 6):
+                if m in range(1, 8):
                     self.numctrls_coord[m][n].SetEditable(False)
 
         nav_sizer = wx.FlexGridSizer(rows=1, cols=3, hgap=5, vgap=5)
@@ -337,18 +337,18 @@ class NeuronavigationPanel(wx.Panel):
             fid_id = const.BTNS_IMG_MKS[n].values()[0]
             if marker_id == fid_id and not self.btns_coord[btn_id].GetValue():
                 self.btns_coord[btn_id].SetValue(True)
-                self.fiducials[btn_id, :] = coord[0:3]
-                for m in [0, 1, 2]:
+                self.fiducials[btn_id, :] = coord[0:4]
+                for m in [0, 1, 2, 3]:
                     self.numctrls_coord[btn_id][m].SetValue(coord[m])
 
     def UpdateImageCoordinates(self, pubsub_evt):
         # TODO: Change from world coordinates to matrix coordinates. They are better for multi software communication.
         self.current_coord = pubsub_evt.data
-        for m in [0, 1, 2, 6]:
-            if m == 6 and self.btns_coord[m].IsEnabled():
+        for m in [0, 1, 2, 3, 8]:
+            if m == 8 and self.btns_coord[m].IsEnabled():
                 for n in [0, 1, 2]:
                     self.numctrls_coord[m][n].SetValue(self.current_coord[n])
-            elif m != 6 and not self.btns_coord[m].GetValue():
+            elif m != 8 and not self.btns_coord[m].GetValue():
                 # btn_state = self.btns_coord[m].GetValue()
                 # if not btn_state:
                 for n in [0, 1, 2]:
@@ -489,12 +489,15 @@ class NeuronavigationPanel(wx.Panel):
                 for btn_c in self.btns_coord:
                     btn_c.Enable(False)
 
-                R, t = db.base_creation_matrix(self.fiducials[0:3, :],self.fiducials[3::, :])
+                #fiducials = db.select_3_fiducials(self.fiducials[0:3, :], self.fiducials[3::, :])
+                #m, q1, m_inv = db.base_creation(trk)
+                #n, q2, n_inv = db.base_creation(img
+                m, q1, minv, n, q2, ninv = db.create_matrix(self.fiducials)
 
                 tracker_mode = self.trk_init, self.tracker_id, self.ref_mode_id
                 # FIXME: FRE is taking long to calculate so it updates on GUI delayed to navigation - I think its fixed
                 # TODO: Exhibit FRE in a warning dialog and only starts navigation after user clicks ok
-                fre = db.calculate_fre(self.fiducials, R,t)
+                fre = db.calculate_fre(self.fiducials, minv, n, q1, q2)
 
                 txtctrl_fre.SetValue(str(round(fre, 2)))
                 if fre <= 3:
@@ -509,7 +512,7 @@ class NeuronavigationPanel(wx.Panel):
                 Publisher.sendMessage("Toggle Cross", const.SLICE_STATE_CROSS)
                 Publisher.sendMessage("Hide current mask")
 
-                 self.correg = dcr.Coregistration((R,t), nav_id, tracker_mode)
+                self.correg = dcr.Coregistration((minv,n,q1,q2), nav_id, tracker_mode)
 
         else:
             tooltip = wx.ToolTip(_("Start neuronavigation"))
@@ -529,7 +532,7 @@ class NeuronavigationPanel(wx.Panel):
             Publisher.sendMessage("Navigation Status", False)
 
     def ResetTrackerFiducials(self):
-        for m in range(3, 6):
+        for m in range(4, 7):
             for n in range(0, 3):
                 self.numctrls_coord[m][n].SetValue(0.0)
 

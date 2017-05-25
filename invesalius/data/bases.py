@@ -59,7 +59,7 @@ def base_creation(fiducials):
 
     return m, q, m_inv
 
-def calculate_fre(fiducials,R,t):
+def calculate_fre(fiducials,minv,n,q1,q2):
 
     """
     Calculate the Fiducial Registration Error for neuronavigation.
@@ -79,7 +79,7 @@ def calculate_fre(fiducials,R,t):
     result = []
 
     for i in range(0, len(trk)):
-        result.append((np.dot(R,trk[i]) + t))
+        result.append(np.array((q1 + (minv*n)*((trk[i]).reshape(3,1)-q2))))
 
     result = np.array(result)
 
@@ -125,23 +125,38 @@ def flip_x(point):
 
     return x, y, z
 
-def base_creation_matrix(trk,img):
+def create_matrix(fiducials):
 
-    from scipy import linalg
+    img = [fiducials[0, :],fiducials[1, :],fiducials[2, :],fiducials[3, :]]
+    trk = [fiducials[4, :],fiducials[5, :],fiducials[6, :],fiducials[7, :]]
+
+    from math import factorial
     num_points = len(img)
+    C = factorial(num_points)/(factorial(3)*factorial(num_points - 3))
+    l=0
+    img_pts=[]
+    trk_pts=[]
+    e=[]
+    for i in range(0,num_points-2):
+        for j in range(i+1,num_points-1):
+            for k in range(j+1,num_points):
 
-    trk_mat = np.array(img).T
-    img_mat = np.array(trk).T
+                img_pts.insert(l,[img[i],img[j],img[k]])
+                trk_pts.insert(l,[trk[i],trk[j],trk[k]])
 
-    trk_mean = trk_mat.mean(1)
-    img_mean = img_mat.mean(1)
-    trk_M = trk_mat - np.tile(trk_mean, (num_points, 1)).T
-    right_M = img_mat - np.tile(img_mean, (num_points, 1)).T
+                m, q1, minv = base_creation(np.array([img[i],img[j],img[k]]))
+                n, q2, ninv = base_creation(np.array([trk[i],trk[j],trk[k]]))
 
-    M = trk_M.dot(right_M.T)
-    U, S, Vt = linalg.svd(M)
-    V = Vt.T
-    R = V.dot(np.diag((1, 1, linalg.det(U.dot(V))))).dot(U.T)
-    t = img_mean - R.dot(trk_mean)
+                FRE = calculate_fre(np.array([img[i],img[j],img[k],trk[i],trk[j],trk[k]]),minv,n,q1,q2)
+                e.insert(l,[FRE])
+                l=l+1
 
-    return R,t
+    min = np.argmin(e)
+    print np.array(img_pts[min])
+    print np.array(trk_pts[min])
+    m,q1,minv = base_creation(np.array(img_pts[min]))
+    n,q2,ninv = base_creation(np.array(trk_pts[min]))
+
+    #fiducials = [img_pts[min,:],trk_pts[min,:]]
+
+    return m,q1,minv,n,q2,ninv
