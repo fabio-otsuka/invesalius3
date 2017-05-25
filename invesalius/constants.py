@@ -24,7 +24,7 @@ import wx
 import itertools
 
 #from invesalius.project import Project
-INVESALIUS_VERSION = "3.0"
+INVESALIUS_VERSION = "3.1"
 
 #---------------
 
@@ -528,6 +528,9 @@ ID_FLOODFILL_MASK = wx.NewId()
 ID_FILL_HOLE_AUTO = wx.NewId()
 ID_REMOVE_MASK_PART = wx.NewId()
 ID_SELECT_MASK_PART = wx.NewId()
+ID_MANUAL_SEGMENTATION = wx.NewId()
+ID_WATERSHED_SEGMENTATION = wx.NewId()
+ID_THRESHOLD_SEGMENTATION = wx.NewId()
 ID_FLOODFILL_SEGMENTATION = wx.NewId()
 ID_CROP_MASK = wx.NewId()
 

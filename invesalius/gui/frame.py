@@ -382,6 +382,7 @@ class Frame(wx.Frame):
         Close all project data.
         """
         Publisher.sendMessage('Close Project')
+        Publisher.sendMessage('Disconnect tracker')
         s = ses.Session()
         if not s.IsOpen() or not s.project_path:
             Publisher.sendMessage('Exit')
@@ -448,6 +449,21 @@ class Frame(wx.Frame):
         elif id == const.ID_REORIENT_IMG:
             self.OnReorientImg()
 
+        elif id == const.ID_THRESHOLD_SEGMENTATION:
+            Publisher.sendMessage("Show panel", const.ID_THRESHOLD_SEGMENTATION)
+            Publisher.sendMessage('Disable actual style')
+            Publisher.sendMessage('Enable style', const.STATE_DEFAULT)
+
+        elif id == const.ID_MANUAL_SEGMENTATION:
+            Publisher.sendMessage("Show panel", const.ID_MANUAL_SEGMENTATION)
+            Publisher.sendMessage('Disable actual style')
+            Publisher.sendMessage('Enable style', const.SLICE_STATE_EDITOR)
+
+        elif id == const.ID_WATERSHED_SEGMENTATION:
+            Publisher.sendMessage("Show panel", const.ID_WATERSHED_SEGMENTATION)
+            Publisher.sendMessage('Disable actual style')
+            Publisher.sendMessage('Enable style', const.SLICE_STATE_WATERSHED)
+
         elif id == const.ID_FLOODFILL_MASK:
             self.OnFillHolesManually()
 
@@ -485,6 +501,8 @@ class Frame(wx.Frame):
             wx.MessageBox(_('Currently the Navigation mode is only working on Windows'), 'Info', wx.OK | wx.ICON_INFORMATION)
             self._show_navigator_message = False
         Publisher.sendMessage('Set navigation mode', status)
+        if not status:
+            Publisher.sendMessage('Remove sensors ID')
 
     def OnSize(self, evt):
         """
@@ -544,8 +562,13 @@ class Frame(wx.Frame):
         """
         Show getting started window.
         """
+        if ses.Session().language == 'pt_BR':
+            user_guide = "user_guide_pt_BR.pdf"
+        else:
+            user_guide = "user_guide_en.pdf"
+
         path = os.path.join(const.DOC_DIR,
-                            "user_guide_pt_BR.pdf")
+                            user_guide)
         if sys.platform == 'darwin':
             path = r'file://' + path
         webbrowser.open(path)
@@ -661,7 +684,12 @@ class MenuBar(wx.MenuBar):
                              const.ID_FLIP_Z,
                              const.ID_SWAP_XY,
                              const.ID_SWAP_XZ,
-                             const.ID_SWAP_YZ,]
+                             const.ID_SWAP_YZ,
+                             const.ID_THRESHOLD_SEGMENTATION,
+                             const.ID_MANUAL_SEGMENTATION,
+                             const.ID_WATERSHED_SEGMENTATION,
+                             const.ID_THRESHOLD_SEGMENTATION,
+                             const.ID_FLOODFILL_SEGMENTATION,]
         self.__init_items()
         self.__bind_events()
 
@@ -781,6 +809,9 @@ class MenuBar(wx.MenuBar):
 
         # Segmentation Menu
         segmentation_menu = wx.Menu()
+        self.threshold_segmentation = segmentation_menu.Append(const.ID_THRESHOLD_SEGMENTATION, _(u"Threshold"))
+        self.manual_segmentation = segmentation_menu.Append(const.ID_MANUAL_SEGMENTATION, _(u"Manual segmentation"))
+        self.watershed_segmentation = segmentation_menu.Append(const.ID_WATERSHED_SEGMENTATION, _(u"Watershed"))
         self.ffill_segmentation = segmentation_menu.Append(const.ID_FLOODFILL_SEGMENTATION, _(u"Region growing"))
         self.ffill_segmentation.Enable(False)
 
@@ -1276,6 +1307,7 @@ class ObjectToolBar(AuiToolBar):
         sub(self._UntoggleAllItems, 'Untoggle object toolbar items')
         sub(self._ToggleLinearMeasure, "Set tool linear measure")
         sub(self._ToggleAngularMeasure, "Set tool angular measure")
+        sub(self.ToggleItem, 'Toggle toolbar item')
 
     def __bind_events_wx(self):
         """
@@ -1461,6 +1493,12 @@ class ObjectToolBar(AuiToolBar):
                 self.ToggleTool(item, False)
         evt.Skip()
 
+    def ToggleItem(self, evt):
+        _id, value = evt.data
+        if _id in self.enable_items:
+            self.ToggleTool(_id, value)
+            self.Refresh()
+
     def SetStateProjectClose(self):
         """
         Disable menu items (e.g. zoom) when project is closed.
@@ -1541,6 +1579,7 @@ class SliceToolBar(AuiToolBar):
         sub(self._EnableState, "Enable state project")
         sub(self._UntoggleAllItems, 'Untoggle slice toolbar items')
         sub(self.OnToggle, 'Toggle Cross')
+        sub(self.ToggleItem, 'Toggle toolbar item')
 
     def __bind_events_wx(self):
         """
@@ -1606,6 +1645,11 @@ class SliceToolBar(AuiToolBar):
         ##print ">>>", self.sst.IsToggled()
         #print ">>>", self.sst.GetState()
 
+    def ToggleItem(self, evt):
+        _id, value = evt.data
+        if _id in self.enable_items:
+            self.ToggleTool(_id, value)
+            self.Refresh()
 
     def SetStateProjectClose(self):
         """
