@@ -492,12 +492,12 @@ class NeuronavigationPanel(wx.Panel):
                 #fiducials = db.select_3_fiducials(self.fiducials[0:3, :], self.fiducials[3::, :])
                 #m, q1, m_inv = db.base_creation(trk)
                 #n, q2, n_inv = db.base_creation(img
-                m, q1, minv, n, q2, ninv = db.create_matrix(self.fiducials)
+                m, q1, minv, n, q2, ninv, fre = db.create_matrix(self.fiducials)
 
                 tracker_mode = self.trk_init, self.tracker_id, self.ref_mode_id
                 # FIXME: FRE is taking long to calculate so it updates on GUI delayed to navigation - I think its fixed
                 # TODO: Exhibit FRE in a warning dialog and only starts navigation after user clicks ok
-                fre = db.calculate_fre(self.fiducials, minv, n, q1, q2)
+                #fre = db.calculate_fre(self.fiducials, minv, n, q1, q2)
 
                 txtctrl_fre.SetValue(str(round(fre, 2)))
                 if fre <= 3:

@@ -156,7 +156,7 @@ def create_matrix(fiducials):
     print np.array(trk_pts[min])
     m,q1,minv = base_creation(np.array(img_pts[min]))
     n,q2,ninv = base_creation(np.array(trk_pts[min]))
-
+    fre = np.array(e[min])
     #fiducials = [img_pts[min,:],trk_pts[min,:]]
 
-    return m,q1,minv,n,q2,ninv
+    return m,q1,minv,n,q2,ninv,float(fre)
