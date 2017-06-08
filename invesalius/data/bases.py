@@ -74,16 +74,33 @@ def calculate_fre(fiducials,minv,n,q1,q2):
 
     print fiducials
 
-    img = np.array([fiducials[0, :],fiducials[1, :],fiducials[2, :]])
-    trk = np.array([fiducials[3, :],fiducials[4, :],fiducials[5, :]])
+    img = [fiducials[0, :],fiducials[1, :],fiducials[2, :]]
+    trk = [fiducials[3, :],fiducials[4, :],fiducials[5, :]]
     result = []
+    dist = np.zeros([3,1])
 
-    for i in range(0, len(trk)):
-        result.append(np.array((q1 + (minv*n)*((trk[i]).reshape(3,1)-q2))))
+    ponto1 = np.array(trk[0])
+    ponto1.shape = (3,1)
+    ponto1 = np.matrix(ponto1.copy())
+    ponto2 = np.matrix(trk[1])
+    ponto2.shape = (3,1)
+    ponto2 = np.matrix(ponto2.copy())
+    ponto3 = np.matrix(trk[2])
+    ponto3.shape = (3,1)
+    ponto3 = np.matrix(ponto3.copy())
 
-    result = np.array(result)
+    imagem1 = np.array(q1 + (minv * n) * (ponto1 - q2))
+    imagem2 = np.array(q1 + (minv * n) * (ponto2 - q2))
+    imagem3 = np.array(q1 + (minv * n) * (ponto3 - q2))
 
-    return float(np.sqrt(np.square(np.linalg.norm(result - img))/len(img)))
+    ED1=np.sqrt((((imagem1[0]-img[0][0])**2) + ((imagem1[1]-img[0][1])**2) +((imagem1[2]-img[0][2])**2)))
+    ED2=np.sqrt((((imagem2[0]-img[1][0])**2) + ((imagem2[1]-img[1][1])**2) +((imagem2[2]-img[1][2])**2)))
+    ED3=np.sqrt((((imagem3[0]-img[2][0])**2) + ((imagem3[1]-img[2][1])**2) +((imagem3[2]-img[2][2])**2)))
+
+    FRE = float(np.sqrt((ED1**2 + ED2**2 + ED3**2)/3))
+
+    return FRE
+
 
 
 def flip_x(point):
@@ -147,9 +164,10 @@ def create_matrix(fiducials):
                 m, q1, minv = base_creation(np.array([img[i],img[j],img[k]]))
                 n, q2, ninv = base_creation(np.array([trk[i],trk[j],trk[k]]))
 
-                FRE = calculate_fre(np.array([img[i],img[j],img[k],trk[i],trk[j],trk[k]]),ninv,m,q2,q1)
+                FRE = calculate_fre(np.array([img[i],img[j],img[k],trk[i],trk[j],trk[k]]),minv,n,q1,q2)
                 e.insert(l,[FRE])
                 l=l+1
+                print FRE
 
     min = np.argmin(e)
     print np.array(img_pts[min])
@@ -157,6 +175,5 @@ def create_matrix(fiducials):
     m,q1,minv = base_creation(np.array(img_pts[min]))
     n,q2,ninv = base_creation(np.array(trk_pts[min]))
     fre = np.array(e[min])
-    #fiducials = [img_pts[min,:],trk_pts[min,:]]
 
-    return m,q1,minv,n,q2,ninv,float(fre)
+    return m,q1,minv,n,q2,ninv, float(fre)
