@@ -147,7 +147,7 @@ def create_matrix(fiducials):
                 m, q1, minv = base_creation(np.array([img[i],img[j],img[k]]))
                 n, q2, ninv = base_creation(np.array([trk[i],trk[j],trk[k]]))
 
-                FRE = calculate_fre(np.array([img[i],img[j],img[k],trk[i],trk[j],trk[k]]),minv,n,q1,q2)
+                FRE = calculate_fre(np.array([img[i],img[j],img[k],trk[i],trk[j],trk[k]]),ninv,m,q2,q1)
                 e.insert(l,[FRE])
                 l=l+1
 
