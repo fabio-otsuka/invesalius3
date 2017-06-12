@@ -302,6 +302,8 @@ class Slice(object):
         self.hue_range = (0, 0)
         self.value_range = (0, 1)
 
+        self.interaction_style.Reset()
+
         Publisher.sendMessage('Select first item from slice menu')
 
     def __set_current_mask_threshold_limits(self, pubsub_evt):
@@ -669,7 +671,7 @@ class Slice(object):
             elif orientation == 'CORONAL':
                 tmp_array = np.array(self.matrix[:, slice_number: slice_number + number_slices, :])
                 if np.any(self.q_orientation[1::]):
-                    transforms.apply_view_matrix_transform(self.matrix, self.spacing, M, slice_number, orientation, 1, self.matrix.min(), tmp_array)
+                    transforms.apply_view_matrix_transform(self.matrix, self.spacing, M, slice_number, orientation, 2, self.matrix.min(), tmp_array)
 
                 if self._type_projection == const.PROJECTION_NORMAL:
                     n_image = tmp_array.squeeze()
@@ -719,7 +721,7 @@ class Slice(object):
             elif orientation == 'SAGITAL':
                 tmp_array = np.array(self.matrix[:, :, slice_number: slice_number + number_slices])
                 if np.any(self.q_orientation[1::]):
-                    transforms.apply_view_matrix_transform(self.matrix, self.spacing, M, slice_number, orientation, 1, self.matrix.min(), tmp_array)
+                    transforms.apply_view_matrix_transform(self.matrix, self.spacing, M, slice_number, orientation, 2, self.matrix.min(), tmp_array)
 
                 if self._type_projection == const.PROJECTION_NORMAL:
                     n_image = tmp_array.squeeze()
