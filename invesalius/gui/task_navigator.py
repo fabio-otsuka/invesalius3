@@ -338,7 +338,7 @@ class NeuronavigationPanel(wx.Panel):
             if marker_id == fid_id and not self.btns_coord[btn_id].GetValue():
                 self.btns_coord[btn_id].SetValue(True)
                 self.fiducials[btn_id, :] = coord[0:4]
-                for m in [0, 1, 2, 3]:
+                for m in [0, 1, 2]:
                     self.numctrls_coord[btn_id][m].SetValue(coord[m])
 
     def UpdateImageCoordinates(self, pubsub_evt):
