@@ -19,6 +19,7 @@
 
 import threading
 from time import sleep
+from winsound import Beep
 
 import wx
 from wx.lib.pubsub import pub as Publisher
@@ -67,14 +68,19 @@ class Trigger(threading.Thread):
             # lines = True
             if lines:
                 wx.CallAfter(Publisher.sendMessage, 'Create marker')
-                sleep(0.5)
+                # If beep is on sleep should be off and vice versa
+                #sleep(0.5)
+                Beep(1000, 500)
 
             if self.stylusplh:
                 wx.CallAfter(Publisher.sendMessage, 'Create marker')
-                sleep(0.5)
+                # If beep is on sleep should be off and vice versa
+                #sleep(0.5)
+                Beep(1000, 500)
                 self.stylusplh = False
 
             sleep(0.175)
+
             if self._pause_:
                 if self.trigger_init:
                     self.trigger_init.close()
