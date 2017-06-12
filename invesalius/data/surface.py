@@ -361,6 +361,9 @@ class SurfaceManager():
         del self.actors_dict
         self.actors_dict = {}
 
+        # restarting the surface index
+        Surface.general_index = -1
+
     def OnSelectSurface(self, pubsub_evt):
         index = pubsub_evt.data
         #self.last_surface_index = index
@@ -372,8 +375,8 @@ class SurfaceManager():
                                surface.colour, surface.volume,
                                surface.area, surface.transparency))
         self.last_surface_index = index
-        if surface.is_shown:
-            self.ShowActor(index, True)
+        #  if surface.is_shown:
+        self.ShowActor(index, True)
 
     def OnLoadSurfaceDict(self, pubsub_evt):
         surface_dict = pubsub_evt.data
